@@ -77,23 +77,42 @@ app.get('/games', async (req,res)=>{
 app.post('/games', async (req,res)=>{
     try{
         const idList = await connection.query('SELECT id FROM categories');
-        console.log(idList.rows[0].id);
+        const gameList = await connection.query('SELECT name FROM games');
         const gameSchema = Joi.object({
-            name:Joi.string().required(),
-            image:Joi.string().domain(),
-            stockTotal: Joi.number().required().min(1),
-            categoryId: Joi.number().custom(value=>{
-                if(idList.rows.find(i=>i.id===value)===undefined){
+            name:Joi.string().required().custom(value=>{
+                if(gameList.rows.find(g=>g.id===value)===undefined){
                     return value;
                 }
                 else{
-                    throw new Error ('ID nao encontrado');
+                    throw new Error ('game ja existe');
                 }
             }),
+            image:Joi.string(),
+            stockTotal: Joi.number().required().min(1),
+            categoryId: Joi.number().custom(value=>{
+                if(idList.rows.find(i=>i.id===value)===undefined){
+                    throw new Error ('ID nao encontrado');
+                }
+                else{
+                    return value;
+                }
+            },'categoria'),
             pricePerDay: Joi.number().required().min(1)
         });
-
-        res.sendStatus(201)
+        const validation =  gameSchema.validate(req.body)
+        if(validation.error!==undefined){
+            if(validation.error.details[0].type==='any.custom' && validation.error.details[0].path[0]==='name'){
+                res.sendStatus(409);
+            }  
+            else{
+                res.sendStatus(400);
+            }
+        }
+        else{
+            res.sendStatus(201)
+        }
+        
+        
     }
     catch(e){
         console.log(e);
