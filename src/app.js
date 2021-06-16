@@ -78,6 +78,13 @@ app.post('/games', async (req,res)=>{
     try{
         const idList = await connection.query('SELECT id FROM categories');
         const gameList = await connection.query('SELECT name FROM games');
+        const newGame = {
+            name: stripHtml(req.body.name).result.trim(),
+            image:stripHtml(req.body.image).result.trim(),
+            stockTotal:req.body.stockTotal,
+            categoryId: req.body.categoryId,
+            pricePerDay: req.body.pricePerDay
+        }
         const gameSchema = Joi.object({
             name:Joi.string().required().custom(value=>{
                 if(gameList.rows.find(g=>g.id===value)===undefined){
@@ -99,7 +106,7 @@ app.post('/games', async (req,res)=>{
             },'categoria'),
             pricePerDay: Joi.number().required().min(1)
         });
-        const validation =  gameSchema.validate(req.body)
+        const validation =  gameSchema.validate(newGame)
         if(validation.error!==undefined){
             if(validation.error.details[0].type==='any.custom' && validation.error.details[0].path[0]==='name'){
                 res.sendStatus(409);
@@ -109,6 +116,7 @@ app.post('/games', async (req,res)=>{
             }
         }
         else{
+            await connection.query('INSERT INTO games ()')
             res.sendStatus(201)
         }
         
