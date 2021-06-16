@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import Joi from 'joi';
 import pg from 'pg';
+import {stripHtml} from "string-strip-html";
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,34 @@ app.get('/categories', async (req,res)=>{
         res.send(categories.rows);
     }
     catch{
+        res.sendStatus(500);
+    }
+});
+
+app.post('/categories', async (req,res)=>{
+    try{
+        const categories= await connection.query('SELECT * FROM categories');
+        const categorieSchema = Joi.string().required().custom(value=>{
+            if(categories.rows.find(r=>r.name===value)===undefined){
+                return value;
+            }
+            else{
+                throw new Error('categorie alredy exists');
+            }
+        });
+        const newcategorie = stripHtml(req.body.name).result.trim();
+        const validation = categorieSchema.validate(newcategorie)
+        if(validation.error===undefined){
+            const categorie= await connection.query('INSERT INTO categories (name) VALUES ($1)',[newcategorie]);
+            res.sendStatus(201);
+        }
+        else{
+            if(validation.error.details[0].type==='string.empty')res.sendStatus(400);
+            else if(validation.error.details[0].type==='any.custom') res.sendStatus(409);
+        }
+    }
+    catch(e){
+        console.log(e)
         res.sendStatus(500);
     }
 });
