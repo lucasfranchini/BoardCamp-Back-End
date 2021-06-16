@@ -116,7 +116,10 @@ app.post('/games', async (req,res)=>{
             }
         }
         else{
-            await connection.query('INSERT INTO games ()')
+            await connection.query(
+                'INSERT INTO games (name,image,"stockTotal","categoryId","pricePerDay") VALUES ($1,$2,$3,$4,$5)',
+                [newGame.name,newGame.image,newGame.stockTotal,newGame.categoryId,newGame.pricePerDay]
+            );
             res.sendStatus(201)
         }
         
