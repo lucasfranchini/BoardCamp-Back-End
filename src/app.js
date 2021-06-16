@@ -109,7 +109,6 @@ app.post('/games', async (req,res)=>{
         const validation =  gameSchema.validate(newGame)
         if(validation.error!==undefined){
             if(validation.error.details[0].type==='any.custom' && validation.error.details[0].path[0]==='name'){
-                console.log(validation.error)
                 res.sendStatus(409);
             }  
             else{
@@ -117,11 +116,11 @@ app.post('/games', async (req,res)=>{
             }
         }
         else{
-            /*await connection.query(
+            await connection.query(
                 'INSERT INTO games (name,image,"stockTotal","categoryId","pricePerDay") VALUES ($1,$2,$3,$4,$5)',
                 [newGame.name,newGame.image,newGame.stockTotal,newGame.categoryId,newGame.pricePerDay]
             );
-            res.sendStatus(201)*/
+            res.sendStatus(201)
         }
         
         
