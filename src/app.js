@@ -3,6 +3,7 @@ import cors from 'cors';
 import Joi from 'joi';
 import pg from 'pg';
 import {stripHtml} from "string-strip-html";
+import { async } from 'regenerator-runtime';
 
 const app = express();
 app.use(cors());
@@ -42,7 +43,7 @@ app.post('/categories', async (req,res)=>{
         const newcategorie = stripHtml(req.body.name).result.trim();
         const validation = categorieSchema.validate(newcategorie)
         if(validation.error===undefined){
-            const categorie= await connection.query('INSERT INTO categories (name) VALUES ($1)',[newcategorie]);
+            await connection.query('INSERT INTO categories (name) VALUES ($1)',[newcategorie]);
             res.sendStatus(201);
         }
         else{
@@ -52,6 +53,33 @@ app.post('/categories', async (req,res)=>{
     }
     catch(e){
         console.log(e)
+        res.sendStatus(500);
+    }
+});
+
+app.get('/games', async (req,res)=>{   
+    try{
+        let games;
+        if(req.query.name===undefined){
+            games = await connection.query('SELECT * FROM games');
+        }
+        else{
+            games = await connection.query('SELECT * FROM games WHERE lower(name) LIKE $1',[req.query.name.toLowerCase()]);
+        }
+        res.send(games.rows);
+    }
+    catch(e){
+        console.log(e);
+        res.sendStatus(500);
+    }
+});
+
+app.post('/games', async (req,res)=>{
+    try{
+
+    }
+    catch(e){
+        console.log(e);
         res.sendStatus(500);
     }
 });
