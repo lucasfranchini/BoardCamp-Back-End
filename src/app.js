@@ -76,7 +76,24 @@ app.get('/games', async (req,res)=>{
 
 app.post('/games', async (req,res)=>{
     try{
+        const idList = await connection.query('SELECT id FROM categories');
+        console.log(idList.rows[0].id);
+        const gameSchema = Joi.object({
+            name:Joi.string().required(),
+            image:Joi.string().domain(),
+            stockTotal: Joi.number().required().min(1),
+            categoryId: Joi.number().custom(value=>{
+                if(idList.rows.find(i=>i.id===value)===undefined){
+                    return value;
+                }
+                else{
+                    throw new Error ('ID nao encontrado');
+                }
+            }),
+            pricePerDay: Joi.number().required().min(1)
+        });
 
+        res.sendStatus(201)
     }
     catch(e){
         console.log(e);
