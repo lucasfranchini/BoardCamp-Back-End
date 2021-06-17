@@ -133,20 +133,14 @@ app.post('/games', async (req,res)=>{
 
 app.get('/customers', async (req,res)=>{
     try{
-        if(req.query.cpf===undefined){
-            const customers = await connection.query('SELECT * from customers');
-            res.send(customers.rows);
+        const cpfIsLike = req.query.cpf===undefined ? "": req.query.cpf;
+        const customers = await connection.query(`SELECT * from customers WHERE cpf LIKE $1`,[cpfIsLike+"%"]);
+        if(customers.rowCount===0){
+            res.sendStatus(404);
+            return;
         }
-        else{
-            const regex = /^[0-9]{2,11}$/;
-            if(regex.test(req.query.cpf)){
-                const customers = await connection.query(`SELECT * from customers WHERE cpf LIKE '${req.query.cpf}%'`);
-                res.send(customers.rows);
-            }
-            else{
-                res.sendStatus(404);
-            }
-        } 
+        res.send(customers.rows);
+
     }
     catch(e){
         console.log(e);
