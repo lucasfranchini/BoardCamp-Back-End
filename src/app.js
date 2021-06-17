@@ -238,7 +238,6 @@ app.post('/rentals', async (req,res)=>{
         const customersId =  await connection.query('SELECT id from customers WHERE id = $1',[req.body.customerId]);
         const games = await connection.query('SELECT * from games WHERE id = $1',[req.body.gameId]);
         const gamesrented = await connection.query(`SELECT * from rentals WHERE "gameId" = $1 AND "returnDate" IS NULL`,[req.body.gameId])
-        console.log(gamesrented.rowCount,games.rows[0].stockTotal,gamesrented.rows)
         const rentalSchema = Joi.object({
             customerId: Joi.number().custom(value=>{
                 if(customersId.rowCount>0) return value;
@@ -266,10 +265,10 @@ app.post('/rentals', async (req,res)=>{
             returnDate:null,
             delayFee:null
         }
-        /*await connection.query(`INSERT INTO rentals 
+        await connection.query(`INSERT INTO rentals 
         ("customerId","gameId","rentDate","daysRented","returnDate","originalPrice","delayFee")
         VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-        [newRent.customerId,newRent.gameId,newRent.rentDate,newRent.daysRented,newRent.returnDate,newRent.originalPrice,newRent.delayFee]);*/
+        [newRent.customerId,newRent.gameId,newRent.rentDate,newRent.daysRented,newRent.returnDate,newRent.originalPrice,newRent.delayFee]);
         res.sendStatus(201)
     }
     catch(e){
