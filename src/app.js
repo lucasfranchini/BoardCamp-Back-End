@@ -192,4 +192,41 @@ app.post('/customers',async (req,res)=>{
     }
 });
 
+app.put('/customers/:id', async (req,res)=>{
+    try{
+        const cpfs = await connection.query('SELECT cpf from customers');
+        const ids = await connection.query('SELECT id from customers');
+        const changeCustomer = {...req.body,name:stripHtml(req.body.name).result.trim()};
+        const customerSchema = Joi.object({
+            name: Joi.string().required(),
+            phone: Joi.string().pattern(/^[0-9]{10,11}$/),
+            cpf: Joi.string().pattern(/^[0-9]{11}$/).custom(v=>{
+                if(cpfs.rows.find(c=>c.cpf===v)===undefined){
+                    return v;
+                }
+                else{
+                    throw new Error('cpf ja existe');
+                }
+            }),
+            birthday: Joi.string().pattern(/^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/)
+        });
+        const validation =customerSchema.validate(changeCustomer);
+        if(validation.error===undefined){
+            await connection.query(
+                'UPDATE customers SET name=$1,phone=$2,cpf=$3,birthday=$4 WHERE id=$5' ,
+                [req.body.name,req.body.phone,req.body.cpf,req.body.birthday,req.params.id]
+                );
+            if(ids.rows.find(i=>i.id===parseInt(req.params.id))===undefined)res.sendStatus(404);
+            else res.sendStatus(200);
+        }
+        else{
+            if(validation.error.details[0].type === 'any.custom') res.sendStatus(409);
+            else res.sendStatus(400);
+        } 
+    }
+    catch(e){
+        console.log(e);
+        res.sendStatus(500);
+    }
+});
 app.listen(4000,()=>{console.log('starting server')});
