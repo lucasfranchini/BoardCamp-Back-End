@@ -60,20 +60,11 @@ app.post('/categories', async (req,res)=>{
 app.get('/games', async (req,res)=>{   
     try{
         let games ;
-        if(req.query.name===undefined){
-            games = await connection.query('SELECT * FROM games');
-        }
-        else{
-            const nameIsLike = req.query.name.toLowerCase();
-            const regex = /^[a-zA-Z0-9]*$/
-            if(regex.test(nameIsLike))
-            {
-                games = await connection.query(`SELECT * FROM games WHERE lower(name) LIKE '${nameIsLike}%'`);
-            }
-            else{
-                res.sendStatus(404);
-                return
-            }
+        const nameIsLike = req.query.name===undefined ? "":req.query.name;
+        games = await connection.query(`SELECT * FROM games WHERE name ILIKE $1`,[nameIsLike+'%']);
+        if(games.rowCount===0){
+            res.sendStatus(404);
+            return;
         }
         res.send(games.rows);
     }
