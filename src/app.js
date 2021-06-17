@@ -59,12 +59,21 @@ app.post('/categories', async (req,res)=>{
 
 app.get('/games', async (req,res)=>{   
     try{
-        let games;
+        let games ;
         if(req.query.name===undefined){
             games = await connection.query('SELECT * FROM games');
         }
         else{
-            games = await connection.query('SELECT * FROM games WHERE lower(name) LIKE $1',[req.query.name.toLowerCase()]);
+            const nameIsLike = req.query.name.toLowerCase();
+            const regex = /^[a-zA-Z0-9]*$/
+            if(regex.test(nameIsLike))
+            {
+                games = await connection.query(`SELECT * FROM games WHERE lower(name) LIKE '${nameIsLike}%'`);
+            }
+            else{
+                res.sendStatus(404);
+                return
+            }
         }
         res.send(games.rows);
     }
@@ -129,6 +138,38 @@ app.post('/games', async (req,res)=>{
         console.log(e);
         res.sendStatus(500);
     }
+});
+
+app.get('/customers', async (req,res)=>{
+    try{
+        if(req.query.cpf===undefined){
+            const customers = await connection.query('SELECT * from customers');
+            res.send(customers.rows);
+        }
+        else{
+            const regex = /^[0-9]{2,11}$/;
+            if(regex.test(req.query.cpf)){
+                const customers = await connection.query(`SELECT * from customers WHERE cpf LIKE '${req.query.cpf}%'`);
+                res.send(customers.rows);
+            }
+            else{
+                res.sendStatus(404);
+            }
+        } 
+    }
+    catch(e){
+        console.log(e);
+        res.sendStatus(500)
+    }
+});
+
+app.get('/customers/:id',async (req,res)=>{
+    const customer = await connection.query('SELECT * FROM customers WHERE id=$1',[req.params.id]);
+    if(customer.rowCount === 0){
+        res.sendStatus(404);
+        return
+    }
+    res.send(customer.rows);
 });
 
 app.listen(4000,()=>{console.log('starting server')});
