@@ -216,12 +216,11 @@ app.put('/customers/:id', async (req,res)=>{
                 'UPDATE customers SET name=$1,phone=$2,cpf=$3,birthday=$4 WHERE id=$5' ,
                 [req.body.name,req.body.phone,req.body.cpf,req.body.birthday,req.params.id]
                 );
-            if(ids.rows.find(i=>i.id===parseInt(req.params.id))===undefined)res.sendStatus(404);
-            else res.sendStatus(200);
+
+            ids.rows.find(i=>i.id===parseInt(req.params.id))===undefined ? res.sendStatus(404):res.sendStatus(200);
         }
         else{
-            if(validation.error.details[0].type === 'any.custom') res.sendStatus(409);
-            else res.sendStatus(400);
+            validation.error.details[0].type === 'any.custom'? res.sendStatus(409):res.sendStatus(400); 
         } 
     }
     catch(e){
