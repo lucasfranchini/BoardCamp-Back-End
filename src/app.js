@@ -3,6 +3,7 @@ import cors from 'cors';
 import Joi from 'joi';
 import pg from 'pg';
 import {stripHtml} from "string-strip-html";
+import dayjs from 'dayjs';
 
 const app = express();
 app.use(cors());
@@ -60,7 +61,11 @@ app.get('/games', async (req,res)=>{
     try{
         let games ;
         const nameIsLike = req.query.name===undefined ? "":req.query.name;
-        games = await connection.query(`SELECT * FROM games WHERE name ILIKE $1`,[nameIsLike+'%']);
+        games = await connection.query(`SELECT games.*,categories.name AS "categoryName" 
+        FROM games JOIN categories 
+        ON games."categoryId" = categories.id 
+        WHERE games.name ILIKE $1`,
+        [nameIsLike+'%']);
         if(games.rowCount===0){
             res.sendStatus(404);
             return;
@@ -182,8 +187,7 @@ app.post('/customers',async (req,res)=>{
             res.sendStatus(201);
         }
         else{
-            if(validation.error.details[0].type === 'any.custom') res.sendStatus(409);
-            else res.sendStatus(400);
+            validation.error.details[0].type === 'any.custom' ? res.sendStatus(409): res.sendStatus(400);
         }
     }
     catch(e){
@@ -228,4 +232,50 @@ app.put('/customers/:id', async (req,res)=>{
         res.sendStatus(500);
     }
 });
+
+app.post('/rentals', async (req,res)=>{
+    try{
+        const customersId =  await connection.query('SELECT id from customers WHERE id = $1',[req.body.customerId]);
+        const games = await connection.query('SELECT * from games WHERE id = $1',[req.body.gameId]);
+        const gamesrented = await connection.query(`SELECT * from rentals WHERE "gameId" = $1 AND "returnDate" IS NULL`,[req.body.gameId])
+        console.log(gamesrented.rowCount,games.rows[0].stockTotal,gamesrented.rows)
+        const rentalSchema = Joi.object({
+            customerId: Joi.number().custom(value=>{
+                if(customersId.rowCount>0) return value;
+                else throw new Error('customer not found')
+            }),
+            gameId: Joi.number().custom(value=>{
+                if(games.rowCount>0){
+                    if(gamesrented.rowCount<games.rows[0].stockTotal) return value;
+                    else throw new Error('all games alredy rented');
+                } 
+                else throw new Error('game not found')
+            }),
+            daysRented: Joi.number().min(1)
+        });
+        const validation = rentalSchema.validate(req.body);
+        if(validation.error!==undefined){
+            console.log(validation.error)
+            res.sendStatus(400)
+            return
+        }
+        const newRent = {
+            ...req.body,
+            rentDate: dayjs().format(),
+            originalPrice: games.rows[0].pricePerDay * req.body.daysRented,
+            returnDate:null,
+            delayFee:null
+        }
+        /*await connection.query(`INSERT INTO rentals 
+        ("customerId","gameId","rentDate","daysRented","returnDate","originalPrice","delayFee")
+        VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+        [newRent.customerId,newRent.gameId,newRent.rentDate,newRent.daysRented,newRent.returnDate,newRent.originalPrice,newRent.delayFee]);*/
+        res.sendStatus(201)
+    }
+    catch(e){
+        console.log(e);
+        res.sendStatus(500);
+    }
+});
+
 app.listen(4000,()=>{console.log('starting server')});
