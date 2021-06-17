@@ -3,7 +3,6 @@ import cors from 'cors';
 import Joi from 'joi';
 import pg from 'pg';
 import {stripHtml} from "string-strip-html";
-import { async } from 'regenerator-runtime';
 
 const app = express();
 app.use(cors());
@@ -155,6 +154,42 @@ app.get('/customers/:id',async (req,res)=>{
         return
     }
     res.send(customer.rows);
+});
+
+app.post('/customers',async (req,res)=>{
+    try{
+        const cpfs = await connection.query('SELECT cpf from customers');
+        const newCustomer = {...req.body,name:stripHtml(req.body.name).result.trim()};
+        const customerSchema = Joi.object({
+            name: Joi.string().required(),
+            phone: Joi.string().pattern(/^[0-9]{10,11}$/),
+            cpf: Joi.string().pattern(/^[0-9]{11}$/).custom(v=>{
+                if(cpfs.rows.find(c=>c.cpf===v)===undefined){
+                    return v;
+                }
+                else{
+                    throw new Error('cpf ja existe');
+                }
+            }),
+            birthday: Joi.string().pattern(/^[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/)
+        }); 
+        const validation =customerSchema.validate(newCustomer);
+        if(validation.error===undefined){
+            await connection.query(
+                'INSERT INTO customers (name,phone,cpf,birthday) VALUES ($1,$2,$3,$4)',
+                [req.body.name,req.body.phone,req.body.cpf,req.body.birthday]
+                );
+            res.sendStatus(201);
+        }
+        else{
+            if(validation.error.details[0].type === 'any.custom') res.sendStatus(409);
+            else res.sendStatus(400);
+        }
+    }
+    catch(e){
+        console.log(e);
+        res.sendStatus(500);
+    }
 });
 
 app.listen(4000,()=>{console.log('starting server')});
