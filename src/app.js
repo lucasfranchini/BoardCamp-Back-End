@@ -160,7 +160,7 @@ app.get('/customers/:id', async (req, res) => {
         res.sendStatus(404);
         return
     }
-    res.send(customer.rows);
+    res.send(customer.rows[0]);
 });
 
 app.post('/customers', async (req, res) => {
