@@ -285,9 +285,11 @@ app.get('/rentals', async (req, res) => {
         customerId: req.query.customerId === undefined ? 0 : parseInt(req.query.customerId)
     };
     try {
-        let result;
+        let operator='>';
         if (querys.gameId > 0 || querys.customerId > 0) {
-            result = await connection.query(`
+            operator='=';
+        }
+        const result = await connection.query(`
             SELECT rentals.*, 
             jsonb_build_object('name',games.name,'id',games.id,'categoryId',games."categoryId",'categoryName',categories.name) AS game,
             jsonb_build_object('name',customers.name,'id',customers.id) AS customer 
@@ -295,18 +297,7 @@ app.get('/rentals', async (req, res) => {
             JOIN games ON games.id=rentals."gameId" 
             JOIN categories ON games."categoryId"=categories.id 
             JOIN customers ON customers.id=rentals."customerId"
-            WHERE games.id=$1 OR customers.id=$2`, [querys.gameId, querys.customerId])
-        }
-        else {
-            result = await connection.query(`
-            SELECT rentals.*, 
-            jsonb_build_object('name',games.name,'id',games.id,'categoryId',games."categoryId",'categoryName',categories.name) AS game,
-            jsonb_build_object('name',customers.name,'id',customers.id) AS customer 
-            FROM rentals 
-            JOIN games ON games.id=rentals."gameId" 
-            JOIN categories ON games."categoryId"=categories.id 
-            JOIN customers ON customers.id=rentals."customerId"`);
-        }
+            WHERE games.id ${operator} $1 OR customers.id ${operator} $2`, [querys.gameId, querys.customerId])
         res.send(result.rows)
     }
     catch (e) {
