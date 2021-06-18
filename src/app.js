@@ -287,37 +287,27 @@ app.get('/rentals', async (req, res) => {
     try {
         let result;
         if (querys.gameId > 0 || querys.customerId > 0) {
-            result = await connection.query(`SELECT rentals.*,games.name AS "gameName",games."categoryId",categories.name AS "categoryName",customers.name AS "customerName" 
-            FROM rentals JOIN games ON games.id=rentals."gameId" JOIN categories ON games."categoryId"=categories.id JOIN customers ON customers.id=rentals."customerId" 
+            result = await connection.query(`
+            SELECT rentals.*, 
+            jsonb_build_object('name',games.name,'id',games.id,'categoryId',games."categoryId",'categoryName',categories.name) AS game,
+            jsonb_build_object('name',customers.name,'id',customers.id) AS customer 
+            FROM rentals 
+            JOIN games ON games.id=rentals."gameId" 
+            JOIN categories ON games."categoryId"=categories.id 
+            JOIN customers ON customers.id=rentals."customerId"
             WHERE games.id=$1 OR customers.id=$2`, [querys.gameId, querys.customerId])
         }
         else {
-            result = await connection.query(`SELECT rentals.*,games.name AS "gameName",games."categoryId",categories.name AS "categoryName",customers.name AS "customerName" 
-            FROM rentals JOIN games ON games.id=rentals."gameId" JOIN categories ON games."categoryId"=categories.id JOIN customers ON customers.id=rentals."customerId"`);
+            result = await connection.query(`
+            SELECT rentals.*, 
+            jsonb_build_object('name',games.name,'id',games.id,'categoryId',games."categoryId",'categoryName',categories.name) AS game,
+            jsonb_build_object('name',customers.name,'id',customers.id) AS customer 
+            FROM rentals 
+            JOIN games ON games.id=rentals."gameId" 
+            JOIN categories ON games."categoryId"=categories.id 
+            JOIN customers ON customers.id=rentals."customerId"`);
         }
-        const rentals = result.rows.map(r => {
-            return {
-                id: r.id,
-                customerId: r.customerId,
-                gameId: r.gameId,
-                rentDate: dayjs(r.rentDate).format('YYYY-MM-DD'),
-                daysRented: r.daysRented,
-                returnDate: r.returnDate,
-                originalPrice: r.originalPrice,
-                delayFee: r.delayFee,
-                customer: {
-                    id: r.customerId,
-                    name: r.customerName
-                },
-                game: {
-                    id: r.gameId,
-                    name: r.gameName,
-                    categoryId: r.categoryId,
-                    categoryName: r.categoryName
-                }
-            }
-        })
-        res.send(rentals)
+        res.send(result.rows)
     }
     catch (e) {
         console.log(e);
