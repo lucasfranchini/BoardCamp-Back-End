@@ -4,8 +4,6 @@ import Joi from 'joi';
 import pg from 'pg';
 import { stripHtml } from "string-strip-html";
 import dayjs from 'dayjs';
-import e from 'express';
-import { async } from 'regenerator-runtime';
 
 const app = express();
 app.use(cors());
