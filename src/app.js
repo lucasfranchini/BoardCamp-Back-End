@@ -5,6 +5,7 @@ import pg from 'pg';
 import { stripHtml } from "string-strip-html";
 import dayjs from 'dayjs';
 import e from 'express';
+import { async } from 'regenerator-runtime';
 
 const app = express();
 app.use(cors());
@@ -353,5 +354,25 @@ app.post('/rentals/:id/return', async (req, res) => {
         res.sendStatus(500);
     }
 });
+
+app.delete('/rentals/:id', async (req,res)=>{
+    try{
+        const verification = await connection.query(`SELECT * FROM rentals WHERE id=$1 AND "returnDate" IS NOT NULL` ,[req.params.id]);
+        const del = await connection.query('DELETE FROM rentals WHERE id=$1 AND "returnDate" IS NULL',[req.params.id]);
+        if(del.rowCount===0){
+            if(verification.rowCount>0){
+                res.sendStatus(400);
+                return;
+            }
+            res.sendStatus(404);
+            return;
+        }
+        res.sendStatus(200)
+    }
+    catch (e) {
+        console.log(e);
+        res.sendStatus(500);
+    }
+})
 
 app.listen(4000, () => { console.log('starting server') });
